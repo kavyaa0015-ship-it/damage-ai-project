@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DamageAI — Smart Structural Damage Detection</title>
+    <meta name="description"
+        content="AI-powered road and structural damage detection system with predictive risk analysis, voice assistant, and inspection reporting.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+
+<body>
+
+    <!-- ===================== NAVIGATION ===================== -->
+    <nav class="navbar" id="navbar">
+        <div class="nav-brand">
+            <div class="brand-icon">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <rect width="32" height="32" rx="8" fill="url(#grad1)" />
+                    <path d="M8 24L16 8L24 24H8Z" fill="white" opacity="0.9" />
+                    <path d="M14 18H18V24H14V18Z" fill="#1a1a2e" />
+                    <defs>
+                        <linearGradient id="grad1" x1="0" y1="0" x2="32" y2="32">
+                            <stop stop-color="#3b82f6" />
+                            <stop offset="1" stop-color="#06b6d4" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            <div class="brand-text">
+                <span class="brand-name">DamageAI</span>
+                <span class="brand-sub">SMART STRUCTURAL ANALYSIS</span>
+            </div>
+        </div>
+        <div class="nav-links">
+            <button class="nav-btn active" data-tab="detect" id="nav-detect">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                Detect
+            </button>
+            <button class="nav-btn" data-tab="history" id="nav-history">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                </svg>
+                History
+            </button>
+            <button class="nav-btn" data-tab="map" id="nav-map">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" />
+                </svg>
+                Road Map
+            </button>
+            <button class="nav-btn voice-btn" id="voice-btn" title="Voice Assistant">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="23" />
+                    <line x1="8" y1="23" x2="16" y2="23" />
+                </svg>
+                <span class="voice-status-dot"></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ===================== VOICE STATUS BAR ===================== -->
+    <div class="voice-status-bar" id="voice-status-bar">
+        <div class="voice-pulse"></div>
+        <span id="voice-status-text">Ready</span>
+    </div>
+
+    <!-- ===================== MAIN CONTENT ===================== -->
+    <main class="main-content">
+
+        <!-- =================== DETECT TAB =================== -->
+        <section class="tab-panel active" id="panel-detect">
+
+            <!-- Upload Section -->
+            <div class="upload-section" id="upload-section">
+                <div class="section-header">
+                    <h1>Structural Damage Detection</h1>
+                    <p>Upload a road or structural image for AI-powered damage analysis</p>
+                </div>
+
+                <div class="upload-container" id="upload-container">
+                    <div class="upload-dropzone" id="upload-dropzone">
+                        <div class="upload-icon">
+                            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="1.5">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="17 8 12 3 7 8" />
+                                <line x1="12" y1="3" x2="12" y2="15" />
+                            </svg>
+                        </div>
+                        <h2>Drop your image here</h2>
+                        <p>or click to browse — PNG, JPG, WEBP — max 20MB</p>
+                        <button class="btn btn-outline" id="choose-file-btn">Choose File</button>
+                        <input type="file" id="file-input" accept="image/png,image/jpeg,image/webp,image/bmp" hidden>
+                    </div>
+
+                    <!-- File Preview (hidden initially) -->
+                    <div class="file-preview" id="file-preview" style="display:none;">
+                        <img id="preview-image" src="" alt="Preview">
+                        <div class="file-info">
+                            <span id="file-name"></span>
+                            <span id="file-size"></span>
+                            <button class="btn-icon" id="remove-file" title="Remove file">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18" />
+                                    <line x1="6" y1="6" x2="18" y2="18" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary btn-analyze" id="analyze-btn" disabled>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
+                        <circle cx="12" cy="12" r="3" />
+                    </svg>
+                    Analyze Damage
+                </button>
+            </div>
+
+            <!-- Loading State -->
+            <div class="loading-section" id="loading-section" style="display:none;">
+                <div class="loader-ring">
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                </div>
+                <h2>Analyzing Image...</h2>
+                <p>AI is processing your image for structural damage detection</p>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="results-section" id="results-section" style="display:none;">
+
+                <!-- Metrics Cards -->
+                <div class="metrics-grid" id="metrics-grid">
+                    <div class="metric-card" id="metric-damage-type">
+                        <div class="metric-label">Damage Type</div>
+                        <div class="metric-value" id="val-damage-type">—</div>
+                    </div>
+                    <div class="metric-card" id="metric-confidence">
+                        <div class="metric-label">Confidence</div>
+                        <div class="metric-value" id="val-confidence">—</div>
+                    </div>
+                    <div class="metric-card" id="metric-severity">
+                        <div class="metric-label">Severity</div>
+                        <div class="metric-value" id="val-severity">—</div>
+                    </div>
+                    <div class="metric-card" id="metric-safety">
+                        <div class="metric-label">Safety Score</div>
+                        <div class="metric-value" id="val-safety">—</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Damage Area</div>
+                        <div class="metric-value" id="val-area">—</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Regions Found</div>
+                        <div class="metric-value" id="val-regions">—</div>
+                    </div>
+                </div>
+
+                <!-- Images Comparison -->
+                <div class="images-comparison">
+                    <div class="image-panel">
+                        <h3>Original Image</h3>
+                        <div class="image-frame">
+                            <img id="original-result-img" src="" alt="Original">
+                        </div>
+                    </div>
+                    <div class="image-panel">
+                        <h3>AI Detected Damage</h3>
+                        <div class="image-frame detected-frame">
+                            <img id="detected-result-img" src="" alt="Detected">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="result-actions">
+                    <button class="btn btn-primary" id="download-image-btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        Download Inspection Image
+                    </button>
+                    <button class="btn btn-secondary" id="download-pdf-btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="16" y1="13" x2="8" y2="13" />
+                            <line x1="16" y1="17" x2="8" y2="17" />
+                            <polyline points="10 9 9 9 8 9" />
+                        </svg>
+                        Download PDF Report
+                    </button>
+                    <button class="btn btn-outline" id="new-analysis-btn">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="23 4 23 10 17 10" />
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                        </svg>
+                        New Analysis
+                    </button>
+                </div>
+
+                <!-- Risk Analysis -->
+                <div class="risk-analysis-section" id="risk-analysis-section">
+                    <div class="risk-header">
+                        <div class="risk-icon">⚠️</div>
+                        <h2>AI Predictive Risk Analysis</h2>
+                    </div>
+                    <div class="risk-content">
+                        <div class="risk-block">
+                            <h3>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path
+                                        d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                    <line x1="12" y1="9" x2="12" y2="13" />
+                                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                                </svg>
+                                Risk Analysis
+                            </h3>
+                            <p id="risk-text"></p>
+                        </div>
+                        <div class="solution-block">
+                            <h3>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                    <polyline points="22 4 12 14.01 9 11.01" />
+                                </svg>
+                                Recommended Solution
+                            </h3>
+                            <p id="solution-text"></p>
+                        </div>
+                    </div>
+
+                    <!-- Recommended Actions -->
+                    <div class="actions-block">
+                        <h3>Recommended Actions</h3>
+                        <ol id="recommended-actions">
+                            <li>Document all damage with timestamped photographs for infrastructure records.</li>
+                            <li>Schedule follow-up inspection within recommended timeframe.</li>
+                            <li><strong>IMMEDIATE ACTION:</strong> Restrict traffic in affected area if risk increases.
+                            </li>
+                            <li>Conduct structural assessment by a certified civil engineer.</li>
+                            <li>Notify local road maintenance authority immediately.</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- Safety Score Visual -->
+                <div class="safety-score-visual" id="safety-visual">
+                    <h3>Safety Impact Score</h3>
+                    <div class="safety-bar-container">
+                        <div class="safety-bar">
+                            <div class="safety-bar-fill" id="safety-bar-fill"></div>
+                        </div>
+                        <div class="safety-labels">
+                            <span>Critical</span>
+                            <span>Moderate</span>
+                            <span>Safe</span>
+                        </div>
+                    </div>
+                    <p class="safety-explanation" id="safety-explanation"></p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- =================== HISTORY TAB =================== -->
+        <section class="tab-panel" id="panel-history">
+            <div class="section-header">
+                <h1>Inspection History</h1>
+                <p>View all previously analyzed inspection results</p>
+            </div>
+            <!-- History Filter Bar -->
+            <div class="history-filters">
+                <div class="filter-group">
+                    <label for="filter-type">Damage Type</label>
+                    <select id="filter-type">
+                        <option value="all">All Types</option>
+                        <option value="Pothole / Road Damage">Potholes</option>
+                        <option value="Structural Crack">Structural Cracks</option>
+                        <option value="Surface Crack">Surface Cracks</option>
+                        <option value="Clear / No Damage">Clear / No Damage</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-severity">Severity</label>
+                    <select id="filter-severity">
+                        <option value="all">All Severities</option>
+                        <option value="SEVERE">Critical (Red)</option>
+                        <option value="MODERATE">Medium (Orange)</option>
+                        <option value="MINOR">Minor (Yellow)</option>
+                        <option value="LOW">Low (Green)</option>
+                        <option value="NONE">None (Clear)</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-status">Repair Status</label>
+                    <select id="filter-status">
+                        <option value="all">All Statuses</option>
+                        <option value="Pending">Pending</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Repaired">Repaired</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- History Table -->
+            <div class="table-container">
+                <table class="history-table" id="history-table">
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>Damage Type</th>
+                            <th>Severity</th>
+                            <th>Location (GPS)</th>
+                            <th>Date</th>
+                            <th>Repair Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-tbody">
+                        <!-- Table rows generated by JS -->
+                    </tbody>
+                </table>
+                <div class="empty-state" id="history-empty" style="display:none;">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="1.5">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                    <h3>No Inspection History</h3>
+                    <p>Analyzed inspections or filtered results will appear here</p>
+                </div>
+            </div>
+            <button class="btn btn-danger" id="clear-history-btn" style="display:none;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                </svg>
+                Clear History
+            </button>
+        </section>
+
+        <!-- =================== MAP TAB =================== -->
+        <section class="tab-panel" id="panel-map">
+            <div class="section-header">
+                <h1>Road Damage Map</h1>
+                <p>Live geographic tracking of detected road damage locations</p>
+            </div>
+            <div class="map-container" id="map-container">
+                <div id="damage-map"></div>
+                <div class="map-legend">
+                    <h4>Severity Legend</h4>
+                    <div class="legend-item"><span class="legend-dot red"></span> Severe</div>
+                    <div class="legend-item"><span class="legend-dot orange"></span> Moderate</div>
+                    <div class="legend-item"><span class="legend-dot yellow"></span> Minor</div>
+                    <div class="legend-item"><span class="legend-dot green"></span> Low / Safe</div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ===================== CONFIRM MODAL ===================== -->
+    <div class="modal-overlay" id="confirm-modal">
+        <div class="modal-box">
+            <div class="modal-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5">
+                    <path
+                        d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                </svg>
+            </div>
+            <h3>Clear Inspection History</h3>
+            <p>Are you sure you want to delete all inspection history?</p>
+            <p class="modal-sub">This action cannot be undone.</p>
+            <div class="modal-actions">
+                <button class="btn btn-outline" id="modal-cancel-btn">Cancel</button>
+                <button class="btn btn-danger-solid" id="modal-confirm-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== TOAST NOTIFICATION ===================== -->
+    <div class="toast" id="toast">
+        <span id="toast-message"></span>
+    </div>
+
+    <!-- ===================== SCRIPTS ===================== -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="/static/js/app.js"></script>
+    <script src="/static/js/detection.js"></script>
+    <script src="/static/js/pdf-report.js"></script>
+    <script src="/static/js/voice.js"></script>
+    <script src="/static/js/history.js"></script>
+    <script src="/static/js/map.js"></script>
+</body>
+
+</html>
