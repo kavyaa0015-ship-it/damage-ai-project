@@ -13,6 +13,8 @@ const Detection = (() => {
         document.getElementById('val-safety').textContent = result.safety_score + '/100';
         document.getElementById('val-area').textContent = result.damage_area_pct + '%';
         document.getElementById('val-regions').textContent = result.num_regions;
+        document.getElementById('val-size').textContent = result.size && result.size !== 'N/A' ? result.size : '—';
+        document.getElementById('val-cost').textContent = result.estimated_cost ? ('₹' + result.estimated_cost.toLocaleString('en-IN')) : '—';
 
         // Apply severity styling
         applySeverityStyles(result.severity);

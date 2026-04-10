@@ -2,7 +2,7 @@ import requests
 import os
 
 URL = "http://localhost:8080/api/upload"
-IMAGE_PATH = "/Users/rakshanadevi/.gemini/antigravity/scratch/damage-ai/uploads/test.jpg"
+IMAGE_PATH = "test.jpg"
 
 # Create a dummy image for testing if it doesn't exist
 if not os.path.exists(IMAGE_PATH):
@@ -23,7 +23,9 @@ def upload_report(device_id, lat=12.0, lon=80.0):
         r = requests.post(URL, files=files, data=data)
         print(f"Device: {device_id} | Status: {r.status_code}")
         if r.status_code == 200:
-            print(f"Verification: {r.json().get('verification_status')}, Count: {r.json().get('verifying_users')}")
+            res = r.json()
+            print(f"Verification: {res.get('verification_status')}, Count: {res.get('verifying_users')}")
+            print(f"Size: {res.get('size')}, Cost: {res.get('estimated_cost')}")
             print("-" * 30)
 
 # Simulate 5 unique users reporting the same pothole

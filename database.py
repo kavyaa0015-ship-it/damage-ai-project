@@ -21,6 +21,8 @@ def init_db():
             longitude REAL NOT NULL,
             damage_type TEXT NOT NULL,
             severity TEXT NOT NULL,
+            size TEXT,
+            estimated_cost INTEGER,
             image_path TEXT,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
@@ -66,7 +68,7 @@ def check_rate_limit(device_id):
     
     return count < 3
 
-def record_and_verify_report(device_id, latitude, longitude, damage_type, severity, image_path):
+def record_and_verify_report(device_id, latitude, longitude, damage_type, severity, size, estimated_cost, image_path):
     """
     Records a new report and returns the current verification status.
     Returns: (status_string, unique_user_count, total_reports)
@@ -94,9 +96,9 @@ def record_and_verify_report(device_id, latitude, longitude, damage_type, severi
 
     # 3. Add new report
     c.execute('''
-        INSERT INTO reports (device_id, latitude, longitude, damage_type, severity, image_path)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ''', (device_id, latitude, longitude, damage_type, severity, image_path))
+        INSERT INTO reports (device_id, latitude, longitude, damage_type, severity, size, estimated_cost, image_path)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (device_id, latitude, longitude, damage_type, severity, size, estimated_cost, image_path))
     conn.commit()
 
     # 4. Verify cross-user reports within a 50 meter radius

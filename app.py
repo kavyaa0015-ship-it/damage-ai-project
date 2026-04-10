@@ -140,6 +140,26 @@ def calculate_severity(damage_area_pct, num_regions):
         return "LOW"
 
 
+def compute_estimated_cost(severity, size):
+    """Estimate repair cost based on severity and size."""
+    if severity == "NONE" or size == "N/A":
+        return 0
+    
+    if severity == "LOW":
+        if size == "Small": return 1000
+        if size == "Medium": return 2000
+        if size == "Large": return 3000
+    elif severity in ["MINOR", "MODERATE"]:
+        if size == "Small": return 3000
+        if size == "Medium": return 5000
+        if size == "Large": return 7000
+    elif severity == "SEVERE":
+        if size == "Small": return 5000
+        if size == "Medium": return 7000
+        if size == "Large": return 10000
+    return 0
+
+
 def calculate_safety_score(severity, confidence, damage_area_pct):
     """Calculate safety score (0-100, lower = more dangerous)."""
     if severity == "NONE":
@@ -211,14 +231,30 @@ def process_image(image_path):
     if damage_type == "Clear / No Damage":
         damage_area_pct = 0.0
         num_regions = 0
+        damage_size = "N/A"
         significant_contours = []  # Clear false contours so they aren't drawn
     else:
         damage_pixels = sum(cv2.contourArea(c) for c in significant_contours)
         damage_area_pct = round((damage_pixels / total_area) * 100, 2)
         num_regions = len(significant_contours)
+        
+        max_area = 0
+        for contour in significant_contours:
+            x, y, bw, bh = cv2.boundingRect(contour)
+            area = bw * bh
+            if area > max_area:
+                max_area = area
+                
+        if max_area < 5000:
+            damage_size = "Small"
+        elif max_area < 20000:
+            damage_size = "Medium"
+        else:
+            damage_size = "Large"
 
     severity = calculate_severity(damage_area_pct, num_regions)
     safety_score = calculate_safety_score(severity, confidence, damage_area_pct)
+    estimated_cost = compute_estimated_cost(severity, damage_size)
 
     # Draw detection overlays on detected image
     detected = original.copy()
@@ -297,6 +333,8 @@ def process_image(image_path):
         "damage_type": damage_type,
         "confidence": round(confidence * 100, 1),
         "severity": severity,
+        "size": damage_size,
+        "estimated_cost": estimated_cost,
         "safety_score": safety_score,
         "damage_area_pct": damage_area_pct,
         "num_regions": num_regions,
@@ -357,6 +395,8 @@ def upload_image():
             longitude=longitude,
             damage_type=result["damage_type"],
             severity=result["severity"],
+            size=result.get("size"),
+            estimated_cost=result.get("estimated_cost"),
             image_path=os.path.join(app.config['UPLOAD_FOLDER'], result["detected_image"])
         )
         
@@ -383,6 +423,64 @@ def upload_image():
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+
+@app.route('/api/estimate-cost', methods=['POST'])
+def estimate_cost():
+    data = request.json
+    if not data:
+        return jsonify({"error": "No JSON data provided"}), 400
+
+    severity = data.get('severity', 'Medium')
+    size = data.get('size', 'Medium')
+    road_type = data.get('road_type', 'Urban road')
+
+    # Base cost from size
+    base_costs = {
+        'Small': (1000, 2000),
+        'Medium': (3000, 5000),
+        'Large': (6000, 10000)
+    }
+    
+    # Severity multiplier
+    severity_multipliers = {
+        'Low': 1.0,
+        'Medium': 1.5,
+        'High': 2.5
+    }
+    
+    # Road type multiplier
+    road_multipliers = {
+        'Rural road': 1.0,
+        'Urban road': 1.2,
+        'Highway': 1.5
+    }
+
+    base_min, base_max = base_costs.get(size, (3000, 5000))
+    sev_mult = severity_multipliers.get(severity, 1.5)
+    road_mult = road_multipliers.get(road_type, 1.2)
+
+    total_mult = sev_mult * road_mult
+    min_cost = int(base_min * total_mult)
+    max_cost = int(base_max * total_mult)
+
+    formatted_range = f"₹{min_cost:,} – ₹{max_cost:,}"
+    
+    explanation = (
+        f"Calculated based on a base cost for {size} damage (₹{base_min:,}–₹{base_max:,}), "
+        f"multiplied by {sev_mult}x for {severity} severity requirements "
+        f"and {road_mult}x for {road_type} repair standards."
+    )
+    
+    future_improvement = "Tip: This computational model can be significantly improved in the future by integrating real-world government infrastructure repair data and historical contractor bidding records for precise, region-specific AI estimations."
+
+    return jsonify({
+        "min_cost": min_cost,
+        "max_cost": max_cost,
+        "formatted_range": formatted_range,
+        "explanation": explanation,
+        "future_improvement": future_improvement
+    })
 
 
 if __name__ == '__main__':
